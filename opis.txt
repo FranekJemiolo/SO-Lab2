@@ -1,0 +1,42 @@
+Communication works as described below:
+
+
+Raport - Serwer :
+Raport sends connectionMessage which tells serwer that raport program wants
+to connect to serwer and recieve consistent data on the progress of counting
+votes. Serwer than creates new thread if there are no more than MAX_THREADS
+created (using semaphore to achieve wanted effect - we knew at the end that
+thread is going to end and has freed all of its allocated memory).
+The thread than gathers in it's array of votes all the votes using read only 
+lock - we are simulating something similair to readers and writers. When the 
+raport gathered it's data then it realeses the lock and sends using queue
+to raport program on channel equal to raport program's pid. Raport reads
+from that queue and than displays wanted messages. Votes are sent in blocks:
+1.List 2.Candidate 3.Votes .
+
+Komisja - Serwer :
+Komisja sends message to server wishing to connect and send data. The serwer 
+than is checking if another commision with same number hasn't already connected
+to serwer. If no other commision with same number has connected to serwer, 
+the serwer sends confirmation to komisja and creates new thread (if available,
+if not - waits). Serwer's thread than awaits for all the votes to be sent and
+when all votes are gathered it takes write lock and adds all the data to serwer
+data and than thread realeses it. In the mean time komisja writes to standard
+output the data wanted by project description.
+
+The maximal number of threads are set in komunikacja.h which is the header file
+in which we manage everything concerning queues life and where all the data 
+structures and other very important variables are defined.
+
+I am using such a way of communication because I believe that creating many 
+mutexes for every candidate on every list and other ways involving many
+commisions to write directly to candidates vote count arrays simultanously
+(e.g. commision 1 writes to votes[1][2] and commision 2 writes to votes[1][1])
+would leave the data to more possibilites of inconsistency and we could easier
+starve raport program - think of all the commisions beggining to connect to 
+serwer and we want raport during that. We wouldn't be able to get consistent 
+data until the end of every commision thread. With this solution at least
+we give chance to raport program to read the data in the meantime. (between some
+commisions writing their data).
+
+komunikacja.conf - is the file for ftok only.
